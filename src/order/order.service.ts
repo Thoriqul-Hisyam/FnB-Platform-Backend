@@ -77,9 +77,9 @@ export class OrderService {
       where: { id },
       include: {
         orderItems: {
-          orderItems: { include: { menuItem: true } },
-          restaurant: true,
-          customer: true,
+          include: {
+            menuItem: true,
+          },
         },
       },
     });
