@@ -6,15 +6,16 @@ import {
   Get,
   Put,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderStatus } from '@prisma/client';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
-
+  @UseGuards(JwtAuthGuard)
   @Post()
   async createOrder(
     @Body()
@@ -30,12 +31,12 @@ export class OrderController {
       createOrderDto.customerInfo,
     );
   }
-
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getOrder(@Param('id') id: string) {
     return await this.orderService.getOrder(id);
   }
-
+  @UseGuards(JwtAuthGuard)
   @Put(':id/status')
   async updateOrderStatus(
     @Param('id') id: string,
@@ -49,7 +50,7 @@ export class OrderController {
 
     return await this.orderService.updateOrderStatus(id, statusEnum);
   }
-
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteOrder(@Param('id') id: string) {
     return await this.orderService.deleteOrder(id);
@@ -59,7 +60,7 @@ export class OrderController {
   //   getOrdersByCustomer(@Param('phone') phone: string) {
   //     return this.orderService.getOrdersByCustomer(phone);
   //   }
-
+  @UseGuards(JwtAuthGuard)
   @Get('/history/:customerId')
   getOrderHistory(@Param('customerId') customerId: string) {
     return this.orderService.getOrderHistoryById(customerId);

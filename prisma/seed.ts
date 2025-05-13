@@ -1,4 +1,5 @@
 import { PrismaClient } from '../generated/prisma';
+import { hash } from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,15 @@ async function main() {
 
   const minuman = await prisma.menuCategory.findFirst({
     where: { name: 'Minuman', restaurantId: restaurant.id },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: 'admin@example.com',
+      name: 'Cak To',
+      password: await hash('admin123', 10),
+      role: 'SUPER_ADMIN',
+    },
   });
 
   await prisma.menuItem.createMany({
