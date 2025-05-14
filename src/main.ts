@@ -4,8 +4,8 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: 'https://fnb-platform-backend.vercel.app',
-      credentials: true,
+      origin: 'http://localhost:3000', // alamat frontend Next.js
+      credentials: true, // jika pakai cookies atau auth header
     },
   });
   await app.listen(process.env.PORT ?? 3001);
