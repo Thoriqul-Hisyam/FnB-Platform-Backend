@@ -1,53 +1,48 @@
-import express from 'express';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import { Handler, Context, Callback } from 'aws-lambda';
-import serverlessExpress from '@vendia/serverless-express';
+import express from 'express';
+import { AppModule } from './app.module';
 
-let cachedServer: Handler;
+const server = express();
 
-async function bootstrap(): Promise<Handler> {
-  const expressApp = express();
+async function bootstrap() {
+  try {
+    const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
-  expressApp.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET,POST,OPTIONS,PUT,DELETE',
-    );
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization',
-    );
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    // Enable CORS
+    app.enableCors({
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000',
+      ],
+      credentials: true,
+    });
 
-    if (req.method === 'OPTIONS') {
-      res.status(204).end();
-      return;
-    }
+    // Global prefix (optional)
+    app.setGlobalPrefix('api/v1');
 
-    next();
-  });
+    await app.init();
 
-  const app = await NestFactory.create(
-    AppModule,
-    new ExpressAdapter(expressApp),
-  );
-  await app.init();
+    const port = process.env.PORT || 3001;
+    await app.listen(port);
 
-  return serverlessExpress({ app: expressApp });
+    console.log(`Server running on http://localhost:${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+    // Graceful shutdown handling
+    const gracefulShutdown = async (signal: string) => {
+      console.log(`Received ${signal}, shutting down gracefully...`);
+      await app.close();
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
-const handler: Handler = async (
-  event: any,
-  context: Context,
-  callback: Callback,
-) => {
-  if (!cachedServer) {
-    cachedServer = await bootstrap();
-  }
-  return cachedServer(event, context, callback);
-};
+bootstrap();
 
-export default handler; // <-- default export here!
+export default server;
