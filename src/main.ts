@@ -3,14 +3,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { Handler, Context, Callback } from 'aws-lambda';
-import serverlessExpress from '@vendia/serverless-express'; // <- ini ganti aws-serverless-express
+import serverlessExpress from '@vendia/serverless-express';
 
 let cachedServer: Handler;
 
 async function bootstrap(): Promise<Handler> {
   const expressApp = express();
 
-  // ✅ Middleware CORS manual
   expressApp.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.setHeader(
@@ -40,8 +39,7 @@ async function bootstrap(): Promise<Handler> {
   return serverlessExpress({ app: expressApp });
 }
 
-// ✅ Inilah yang Vercel pakai
-export const handler: Handler = async (
+const handler: Handler = async (
   event: any,
   context: Context,
   callback: Callback,
@@ -51,3 +49,5 @@ export const handler: Handler = async (
   }
   return cachedServer(event, context, callback);
 };
+
+export default handler; // <-- default export here!
