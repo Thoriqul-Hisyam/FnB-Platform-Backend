@@ -1,14 +1,17 @@
-// main.ts
+import express from 'express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
+import { Handler, Context, Callback } from 'aws-lambda';
+import serverlessExpress from '@vendia/serverless-express'; // <- ini ganti aws-serverless-express
 
-async function bootstrap() {
-  const server = express();
+let cachedServer: Handler;
 
-  // ✅ Tambahkan CORS middleware di sini
-  server.use((req, res, next) => {
+async function bootstrap(): Promise<Handler> {
+  const expressApp = express();
+
+  // ✅ Middleware CORS manual
+  expressApp.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.setHeader(
       'Access-Control-Allow-Methods',
@@ -28,9 +31,23 @@ async function bootstrap() {
     next();
   });
 
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
-  await app.init(); // ⚠️ BUKAN listen!
+  const app = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(expressApp),
+  );
+  await app.init();
 
-  // ❌ Jangan pakai app.listen(...) karena tidak akan dipanggil di Vercel
+  return serverlessExpress({ app: expressApp });
 }
-bootstrap();
+
+// ✅ Inilah yang Vercel pakai
+export const handler: Handler = async (
+  event: any,
+  context: Context,
+  callback: Callback,
+) => {
+  if (!cachedServer) {
+    cachedServer = await bootstrap();
+  }
+  return cachedServer(event, context, callback);
+};
